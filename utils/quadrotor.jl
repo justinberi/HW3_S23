@@ -8,17 +8,19 @@ function dcm_from_mrp(p)
     (8*p1*p3 + p2*a)  (8*p2*p3 - p1*a)  (-((8*p1^2 + 8*p2^2)/den - 1)*den)
     ]/den
 end
-function skew(ω::Vector{T}) where {T}
-    return [0 -ω[3] ω[2];
-            ω[3] 0 -ω[1];
-            -ω[2] ω[1] 0]
+function skew(ω::Vector)
+    return [0    -ω[3]  ω[2];
+            ω[3]  0    -ω[1];
+           -ω[2]  ω[1]  0]
 end
 function quadrotor_dynamics(model::NamedTuple,x,u)
     # quadrotor dynamics with an MRP for attitude
-    r = x[1:3]
-    v = x[4:6]
-    p = x[7:9]
-    ω = x[10:12]
+    # and velocity in the world frame (not body frame)
+    
+    r = x[1:3]     # position in world frame 
+    v = x[4:6]     # position in body frame 
+    p = x[7:9]     # n_p_b (MRP) attitude 
+    ω = x[10:12]   # angular velocity 
 
     Q = dcm_from_mrp(p)
 
@@ -48,6 +50,7 @@ function quadrotor_dynamics(model::NamedTuple,x,u)
 
     f = mass*gravity + Q*F # forces in world frame
 
+    # this is xdot 
     [
         v
         f/mass
@@ -56,6 +59,7 @@ function quadrotor_dynamics(model::NamedTuple,x,u)
     ]
 end
 function rk4(model,ode,x,u,dt)
+    # rk4 
     k1 = dt*ode(model,x, u)
     k2 = dt*ode(model,x + k1/2, u)
     k3 = dt*ode(model,x + k2/2, u)
@@ -63,6 +67,7 @@ function rk4(model,ode,x,u,dt)
     x + (1/6)*(k1 + 2*k2 + 2*k3 + k4)
 end
 function vis_traj!(vis, name, X; R = 0.1, color = mc.RGBA(1.0, 0.0, 0.0, 1.0))
+    # visualize a trajectory expressed with X::Vector{Vector}
     for i = 1:(length(X)-1)
         a = X[i][1:3]
         b = X[i+1][1:3]
@@ -77,6 +82,7 @@ function vis_traj!(vis, name, X; R = 0.1, color = mc.RGBA(1.0, 0.0, 0.0, 1.0))
 end
 
 function animate_quadrotor(Xsim, Xref, dt)
+    # animate quadrotor, show Xref with vis_traj!, and track Xref with the green sphere
     vis = mc.Visualizer()
     robot_obj = mc.MeshFileGeometry(joinpath(@__DIR__,"quadrotor.obj"))
     mc.setobject!(vis[:vic], robot_obj)
