@@ -4,6 +4,11 @@ import FiniteDiff
 import ForwardDiff
 using LinearAlgebra
 
+"""
+Conctrese base for the callback object that is used to query function values, derivatives, and expression graphs.
+
+See https://jump.dev/MathOptInterface.jl/stable/reference/nonlinear/#Types
+"""
 struct ProblemMOI <: MOI.AbstractNLPEvaluator
     n_nlp::Int
     m_nlp::Int
@@ -18,10 +23,13 @@ struct ProblemMOI <: MOI.AbstractNLPEvaluator
     diff_type # :Symbol
 end
 
+"""
+Constructor
+"""
 function ProblemMOI(n_nlp,m_nlp,params,cost,con,diff_type;
         obj_grad=true,
         con_jac=true,
-        sparsity_jac=sparsity_jacobian(n_nlp,m_nlp),
+        sparsity_jac=sparsity_jacobian(n_nlp,m_nlp), # kind of looks not sparse ...
         sparsity_hess=sparsity_hessian(n_nlp,m_nlp),
         hessian_lagrangian=false)
 
@@ -40,6 +48,8 @@ end
 function row_col!(row,col,r,c)
     for cc in c
         for rr in r
+            # push! Append to a collection
+            # convert converts second arg to first arg type
             push!(row,convert(Int,rr))
             push!(col,convert(Int,cc))
         end
@@ -47,6 +57,9 @@ function row_col!(row,col,r,c)
     return row, col
 end
 
+"""
+Kind of looks like it creates a vector of 2d indexes
+"""
 function sparsity_jacobian(n,m)
 
     row = []
@@ -60,6 +73,9 @@ function sparsity_jacobian(n,m)
     return collect(zip(row,col))
 end
 
+"""
+Kind of looks like it creates a vector of 2d indexes
+"""
 function sparsity_hessian(n,m)
 
     row = []
@@ -73,14 +89,20 @@ function sparsity_hessian(n,m)
     return collect(zip(row,col))
 end
 
+# https://jump.dev/MathOptInterface.jl/stable/reference/nonlinear/
+
+"""
+Evaluate the objective $f(x)$, returning a scalar value.
+"""
 function MOI.eval_objective(prob::MOI.AbstractNLPEvaluator, x)
     prob.cost(prob.params, x)
 end
 
+# This function should ideally have ! appended
 function MOI.eval_objective_gradient(prob::MOI.AbstractNLPEvaluator, grad_f, x)
     _cost(_x) = prob.cost(prob.params, _x)
     if prob.diff_type == :auto 
-        ForwardDiff.gradient!(grad_f,_cost,x)
+        ForwardDiff.gradient!(grad_f,_cost,x) # modifies arguments stores in grad_f
     else
         FiniteDiff.finite_difference_gradient!(grad_f, _cost, x)
     end
