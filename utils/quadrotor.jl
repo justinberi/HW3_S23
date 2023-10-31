@@ -13,7 +13,7 @@ function skew(ω::Vector)
             ω[3]  0    -ω[1];
            -ω[2]  ω[1]  0]
 end
-function quadrotor_dynamics(model::NamedTuple,x,u)
+function quadrotor_dynamics(model,x,u)
     # quadrotor dynamics with an MRP for attitude
     # and velocity in the world frame (not body frame)
     
